@@ -1,0 +1,13 @@
+
+>>> Syntax error at line 2: invalid assignment target (can only assign to variable or array element)
+
+>>> Syntax error at line 2: expected ';' but found '='
+Syntax tree:
+  FuncK
+    VoidK
+    IdK: main
+    ParamsK
+      VoidK
+    CompK
+      ConstK: 5
+      ConstK: 10

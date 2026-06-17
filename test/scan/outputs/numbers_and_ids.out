@@ -1,0 +1,11 @@
+1: int x = 12345; y = x;
+    1: reserved word: int
+    1: ID, name= x
+    1: =
+    1: NUM, val= 12345
+    1: ;
+    1: ID, name= y
+    1: =
+    1: ID, name= x
+    1: ;
+    2: EOF

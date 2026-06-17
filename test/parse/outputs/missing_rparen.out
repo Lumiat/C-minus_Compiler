@@ -1,0 +1,13 @@
+
+>>> Syntax error at line 1: expected ')' but found '{'
+Syntax tree:
+  FuncK
+    IntK
+    IdK: foo
+    ParamsK
+      ParamK
+        IntK
+        IdK: x
+    CompK
+      Return
+        IdK: x

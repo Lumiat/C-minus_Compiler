@@ -1,0 +1,33 @@
+1: int main() 
+    1: reserved word: int
+    1: ID, name= main
+    1: (
+    1: )
+2: { 
+    2: {
+3:     int a[10]; 
+    3: reserved word: int
+    3: ID, name= a
+    3: [
+    3: NUM, val= 10
+    3: ]
+    3: ;
+4:     a[0] = a[0] + 1; 
+    4: ID, name= a
+    4: [
+    4: NUM, val= 0
+    4: ]
+    4: =
+    4: ID, name= a
+    4: [
+    4: NUM, val= 0
+    4: ]
+    4: +
+    4: NUM, val= 1
+    4: ;
+5:     return; 
+    5: reserved word: return
+    5: ;
+6: }
+    6: }
+    7: EOF

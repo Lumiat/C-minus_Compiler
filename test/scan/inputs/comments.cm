@@ -1,0 +1,10 @@
+/* this is a comment */ 5 /* mid comment */6
+/* let 5 * 4 */
+4 * 5
+/* test special case ** */
+/* /* */
+/* */ */
+/*
+cross line comment
+*/
+/*

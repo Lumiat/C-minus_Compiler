@@ -1,0 +1,20 @@
+parse.c: In function 'factor':
+parse.c:503:23: warning: unused variable 'saved' [-Wunused-variable]
+  503 |             TokenType saved = token;
+      |                       ^~~~~
+parse.c: At top level:
+parse.c:32:18: warning: 'relop' declared 'static' but never defined [-Wunused-function]
+   32 | static TreeNode *relop(void);
+      |                  ^~~~~
+parse.c:34:18: warning: 'addop' declared 'static' but never defined [-Wunused-function]
+   34 | static TreeNode *addop(void);
+      |                  ^~~~~
+parse.c:36:18: warning: 'mulop' declared 'static' but never defined [-Wunused-function]
+   36 | static TreeNode *mulop(void);
+      |                  ^~~~~
+parse.c:38:18: warning: 'call' declared 'static' but never defined [-Wunused-function]
+   38 | static TreeNode *call(void);
+      |                  ^~~~
+parse.c:415:11: warning: 'var' defined but not used [-Wunused-function]
+  415 | TreeNode *var(void)
+      |           ^~~

@@ -1,0 +1,89 @@
+1: /*打印两个整数的最小公因子*/
+2: 
+3: int gcd(int u,int v)
+    3: reserved word: int
+    3: ID, name= gcd
+    3: (
+    3: reserved word: int
+    3: ID, name= u
+    3: ,
+    3: reserved word: int
+    3: ID, name= v
+    3: )
+4: {
+    4: {
+5: 	if(v==0)
+    5: reserved word: if
+    5: (
+    5: ID, name= v
+    5: ==
+    5: NUM, val= 0
+    5: )
+6:         return u;
+    6: reserved word: return
+    6: ID, name= u
+    6: ;
+7: 	else
+    7: reserved word: else
+8:         return gcd(v,u-u/v*v);
+    8: reserved word: return
+    8: ID, name= gcd
+    8: (
+    8: ID, name= v
+    8: ,
+    8: ID, name= u
+    8: -
+    8: ID, name= u
+    8: /
+    8: ID, name= v
+    8: *
+    8: ID, name= v
+    8: )
+    8: ;
+9:     /* u-u/b*b == u mod v */
+10: }
+    10: }
+11: 
+12: void main(void)
+    12: reserved word: void
+    12: ID, name= main
+    12: (
+    12: reserved word: void
+    12: )
+13: {
+    13: {
+14: 	int x;int y;
+    14: reserved word: int
+    14: ID, name= x
+    14: ;
+    14: reserved word: int
+    14: ID, name= y
+    14: ;
+15: 	x=input();
+    15: ID, name= x
+    15: =
+    15: ID, name= input
+    15: (
+    15: )
+    15: ;
+16: 	y=intput();
+    16: ID, name= y
+    16: =
+    16: ID, name= intput
+    16: (
+    16: )
+    16: ;
+17: 	output(gcd(x,y));
+    17: ID, name= output
+    17: (
+    17: ID, name= gcd
+    17: (
+    17: ID, name= x
+    17: ,
+    17: ID, name= y
+    17: )
+    17: )
+    17: ;
+18: }
+    18: }
+    19: EOF

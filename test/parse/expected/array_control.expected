@@ -1,0 +1,83 @@
+Syntax tree:
+  FuncK
+    IntK
+    IdK: sum
+    ParamsK
+      ParamK
+        IntK
+        IdK: data
+      ParamK
+        IntK
+        IdK: n
+    CompK
+      Var_DeclK
+        IntK
+        IdK: i
+      Var_DeclK
+        IntK
+        IdK: total
+      Assign
+        IdK: i
+        ConstK: 0
+      Assign
+        IdK: total
+        ConstK: 0
+      While
+        Op: <
+          IdK: i
+          IdK: n
+        CompK
+          If
+            Op: !=
+              IdK: data
+                IdK: i
+              ConstK: 0
+            Assign
+              IdK: total
+              Op: +
+                IdK: total
+                Op: *
+                  IdK: data
+                    IdK: i
+                  ConstK: 2
+            Assign
+              IdK: total
+              Op: -
+                IdK: total
+                ConstK: 1
+          Assign
+            IdK: i
+            Op: +
+              IdK: i
+              ConstK: 1
+      Return
+        IdK: total
+  FuncK
+    VoidK
+    IdK: main
+    ParamsK
+      VoidK
+    CompK
+      Var_DeclK
+        IntK
+        IdK: values
+      Assign
+        IdK: values
+          ConstK: 0
+        ConstK: 1
+      Assign
+        IdK: values
+          ConstK: 1
+        ConstK: 0
+      Assign
+        IdK: values
+          ConstK: 2
+        ConstK: 4
+      CallK
+        IdK: output
+        ArgsK
+          CallK
+            IdK: sum
+            ArgsK
+              IdK: values
+              ConstK: 3

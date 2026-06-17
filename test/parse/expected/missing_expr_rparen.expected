@@ -1,0 +1,19 @@
+
+>>> Syntax error at line 3: expected ')' but found ';'
+Syntax tree:
+  FuncK
+    IntK
+    IdK: test
+    ParamsK
+      VoidK
+    CompK
+      Var_DeclK
+        IntK
+        IdK: x
+      Assign
+        IdK: x
+        Op: +
+          ConstK: 5
+          ConstK: 3
+      Return
+        IdK: x

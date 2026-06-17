@@ -1,0 +1,15 @@
+
+>>> Syntax error at line 5: expected ';' but found '}'
+Syntax tree:
+  FuncK
+    VoidK
+    IdK: main
+    ParamsK
+      VoidK
+    CompK
+      Var_DeclK
+        IntK
+        IdK: x
+      Assign
+        IdK: x
+        ConstK: 1
