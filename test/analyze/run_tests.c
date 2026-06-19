@@ -1,7 +1,7 @@
+#include "../../analyze.h"
 #include "../../globals.h"
 #include "../../parse.h"
 #include "../../scan.h"
-#include "../../util.h"
 #include "../test_runner.h"
 
 static int hasLexicalErrors(FILE *input)
@@ -26,20 +26,28 @@ static int hasLexicalErrors(FILE *input)
     return foundError;
 }
 
-static int runParserCase(FILE *input, FILE *output, const char *name)
+static int runAnalyzerCase(FILE *input, FILE *output, const char *name)
 {
+    FILE *diagnosticSink;
     TreeNode *syntaxTree;
 
     if (hasLexicalErrors(input))
     {
         fprintf(stderr,
-                "[PARSE TEST] fixture precondition failed: %s contains lexical errors\n",
+                "[ANALYZE TEST] fixture precondition failed: %s contains lexical errors\n",
                 name);
         return 1;
     }
 
+    diagnosticSink = tmpfile();
+    if (diagnosticSink == NULL)
+    {
+        fprintf(stderr, "[ANALYZE TEST] cannot create diagnostic sink for %s\n", name);
+        return 1;
+    }
+
     source = input;
-    listing = output;
+    listing = diagnosticSink;
     rewind(source);
     clearerr(source);
     resetScanner();
@@ -47,21 +55,28 @@ static int runParserCase(FILE *input, FILE *output, const char *name)
     Error = FALSE;
     EchoSource = FALSE;
     TraceScan = FALSE;
-    TraceParse = TRUE;
+    TraceParse = FALSE;
     TraceAnalyze = FALSE;
     TraceCode = FALSE;
 
     syntaxTree = parse();
-    if (TraceParse && syntaxTree != NULL)
+    if (Error)
     {
-        fprintf(listing, "Syntax tree:\n");
-        printTree(syntaxTree);
+        fprintf(stderr,
+                "[ANALYZE TEST] fixture precondition failed: %s contains syntax errors\n",
+                name);
+        fclose(diagnosticSink);
+        return 1;
     }
+    fclose(diagnosticSink);
 
+    listing = output;
+    Error = FALSE;
+    analyze(syntaxTree);
     return 0;
 }
 
 int main(void)
 {
-    return runTestSuite("PARSE", "test/parse", runParserCase);
+    return runTestSuite("ANALYZE", "test/analyze", runAnalyzerCase);
 }

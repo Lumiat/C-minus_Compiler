@@ -1,5 +1,5 @@
 /*
-File: SCAN.C
+File: scan.c
 The scanner implementation for the C-minus compiler
 */
 
@@ -13,6 +13,8 @@ typedef enum
     START,   /* start of token */
     INNUM,   /* check if number */
     INID,    /* check if identifier */
+    INBADNUM, /* consume a malformed number such as 123abc */
+    INBADID,  /* consume a malformed identifier such as abc123 */
     INLT,    /* check if < */
     INGT,    /* check if > */
     INEQ,    /* check if == */
@@ -27,6 +29,7 @@ typedef enum
 char tokenString[MAXTOKENLEN + 1]; /* holds current token string */
 /* tokenLine: line number associated with the most recently returned token (1-based) */
 int tokenLine = 0;
+ScanErrorKind scanErrorKind = SCAN_ERROR_NONE;
 
 #define BUFLEN 256 /* length of the input buffer for source code lines */
 
@@ -48,6 +51,7 @@ void resetScanner(void)
     eofTokenLineOverride = -1;
     unterminatedCommentEOF = FALSE;
     tokenLine = 0;
+    scanErrorKind = SCAN_ERROR_NONE;
     tokenString[0] = '\0';
 }
 
@@ -110,6 +114,41 @@ static TokenType reservedLookup(char *s)
     return ID;
 }
 
+void reportScanError(FILE *out)
+{
+    switch (scanErrorKind)
+    {
+    case SCAN_ERROR_MALFORMED_ID:
+        fprintf(out,
+                "\n>>> Lexical error at line %d: malformed identifier '%s'; "
+                "ID must match letter letter*\n",
+                tokenLine, tokenString);
+        break;
+    case SCAN_ERROR_MALFORMED_NUM:
+        fprintf(out,
+                "\n>>> Lexical error at line %d: malformed number '%s'; "
+                "NUM must match digit digit*\n",
+                tokenLine, tokenString);
+        break;
+    case SCAN_ERROR_UNMATCHED_COMMENT_END:
+        fprintf(out,
+                "\n>>> Lexical error at line %d: unmatched comment terminator '*/'\n",
+                tokenLine);
+        break;
+    case SCAN_ERROR_UNTERMINATED_COMMENT:
+        fprintf(out,
+                "\n>>> Lexical error at line %d: unterminated comment; expected '*/'\n",
+                tokenLine);
+        break;
+    case SCAN_ERROR_INVALID_SYMBOL:
+    case SCAN_ERROR_NONE:
+    default:
+        fprintf(out, "\n>>> Lexical error at line %d: invalid symbol '%s'\n",
+                tokenLine, tokenString);
+        break;
+    }
+}
+
 /****************************************/
 /* the primary function of the scanner  */
 /****************************************/
@@ -120,6 +159,9 @@ TokenType getToken(void)
     TokenType currentToken;   /* holds current token to be returned */
     StateType state = START;  /* current state - always begins at START */
     int save;                 /* flag to indicate save to tokenString */
+    int tokenStartLine = lineno;
+
+    scanErrorKind = SCAN_ERROR_NONE;
 
     while (state != DONE)
     {
@@ -136,88 +178,80 @@ TokenType getToken(void)
             }
             else if ((c == ' ') || (c == '\t') || (c == '\n'))
                 save = FALSE;
-            else if (isdigit(c))
-            {
-                state = INNUM;
-            }
-            else if (isalpha(c))
-            {
-                state = INID;
-            }
-            else if (c == '<')
-            {
-                state = INLT;
-            }
-            else if (c == '>')
-            {
-                state = INGT;
-            }
-            else if (c == '=')
-            {
-                state = INEQ;
-            }
-            else if (c == '!')
-            {
-                state = INNOT;
-            }
-            else if (c == '/')
-            {
-                state = INSLASH;
-            }
-            else if (c == '*')
-            {
-                state = INSTAR;
-            }
             else
             {
-                state = DONE;
-                switch (c)
+                tokenStartLine = lineno;
+                if (isdigit(c))
+                    state = INNUM;
+                else if (isalpha(c))
+                    state = INID;
+                else if (c == '_')
                 {
-                case EOF:
-                    save = FALSE;
-                    currentToken = ENDFILE;
-                    break;
-                case '+':
-                    currentToken = PLUS;
-                    break;
-                case '-':
-                    currentToken = MINUS;
-                    break;
-                case '*':
-                    currentToken = TIMES;
-                    break;
-                case ',':
-                    currentToken = COMMA;
-                    break;
-                case ';':
-                    currentToken = SEMI;
-                    break;
-                case '(':
-                    currentToken = LPAREN;
-                    break;
-                case ')':
-                    currentToken = RPAREN;
-                    break;
-                case '[':
-                    currentToken = LBRACKET;
-                    break;
-                case ']':
-                    currentToken = RBRACKET;
-                    break;
-                case '{':
-                    currentToken = LBRACE;
-                    break;
-                case '}':
-                    currentToken = RBRACE;
-                    break;
-                default:
-                    currentToken = ERROR;
-                    break;
+                    state = INBADID;
+                    scanErrorKind = SCAN_ERROR_MALFORMED_ID;
+                }
+                else if (c == '<')
+                    state = INLT;
+                else if (c == '>')
+                    state = INGT;
+                else if (c == '=')
+                    state = INEQ;
+                else if (c == '!')
+                    state = INNOT;
+                else if (c == '/')
+                    state = INSLASH;
+                else if (c == '*')
+                    state = INSTAR;
+                else
+                {
+                    state = DONE;
+                    switch (c)
+                    {
+                    case '+':
+                        currentToken = PLUS;
+                        break;
+                    case '-':
+                        currentToken = MINUS;
+                        break;
+                    case ',':
+                        currentToken = COMMA;
+                        break;
+                    case ';':
+                        currentToken = SEMI;
+                        break;
+                    case '(':
+                        currentToken = LPAREN;
+                        break;
+                    case ')':
+                        currentToken = RPAREN;
+                        break;
+                    case '[':
+                        currentToken = LBRACKET;
+                        break;
+                    case ']':
+                        currentToken = RBRACKET;
+                        break;
+                    case '{':
+                        currentToken = LBRACE;
+                        break;
+                    case '}':
+                        currentToken = RBRACE;
+                        break;
+                    default:
+                        currentToken = ERROR;
+                        scanErrorKind = SCAN_ERROR_INVALID_SYMBOL;
+                        break;
+                    }
                 }
             }
             break;
         case INNUM:
-            if (!isdigit(c))
+            if (isalpha(c) || c == '_')
+            {
+                state = INBADNUM;
+                scanErrorKind = SCAN_ERROR_MALFORMED_NUM;
+            }
+            else if (!isdigit(c))
             {
                 ungetNextChar();
                 save = FALSE;
@@ -226,12 +260,35 @@ TokenType getToken(void)
             }
             break;
         case INID:
-            if (!isalpha(c))
+            if (isdigit(c) || c == '_')
+            {
+                state = INBADID;
+                scanErrorKind = SCAN_ERROR_MALFORMED_ID;
+            }
+            else if (!isalpha(c))
             {
                 ungetNextChar();
                 save = FALSE;
                 state = DONE;
                 currentToken = ID;
+            }
+            break;
+        case INBADNUM:
+            if (!isalnum(c) && c != '_')
+            {
+                ungetNextChar();
+                save = FALSE;
+                state = DONE;
+                currentToken = ERROR;
+            }
+            break;
+        case INBADID:
+            if (!isalnum(c) && c != '_')
+            {
+                ungetNextChar();
+                save = FALSE;
+                state = DONE;
+                currentToken = ERROR;
             }
             break;
         case INLT:
@@ -287,6 +344,7 @@ TokenType getToken(void)
                 ungetNextChar();
                 save = FALSE;
                 currentToken = ERROR;
+                scanErrorKind = SCAN_ERROR_INVALID_SYMBOL;
                 state = DONE;
             }
             break;
@@ -296,6 +354,7 @@ TokenType getToken(void)
                 save = FALSE;
                 state = DONE;
                 currentToken = ERROR;
+                scanErrorKind = SCAN_ERROR_UNMATCHED_COMMENT_END;
                 tokenStringIndex = 0;
                 tokenString[tokenStringIndex++] = '*';
                 tokenString[tokenStringIndex++] = '/';
@@ -303,6 +362,7 @@ TokenType getToken(void)
             else
             {
                 ungetNextChar();
+                save = FALSE;
                 state = DONE;
                 currentToken = TIMES;
             }
@@ -321,38 +381,31 @@ TokenType getToken(void)
             }
             break;
         case INCMT:
+            save = FALSE;
             if (c == '*')
                 state = INEND;
             else if (c == EOF)
             {
-                while (tokenStringIndex > 0 &&
-                       (tokenString[tokenStringIndex - 1] == '\n' ||
-                        tokenString[tokenStringIndex - 1] == '\r'))
-                    tokenStringIndex--;
-                save = FALSE;
                 state = DONE;
                 currentToken = ERROR;
+                scanErrorKind = SCAN_ERROR_UNTERMINATED_COMMENT;
                 unterminatedCommentEOF = TRUE;
             }
             else
                 state = INCMT;
             break;
         case INEND:
+            save = FALSE;
             if (c == '/')
             {
-                save = FALSE;
                 tokenStringIndex = 0;
                 state = START;
             }
             else if (c == EOF)
             {
-                while (tokenStringIndex > 0 &&
-                       (tokenString[tokenStringIndex - 1] == '\n' ||
-                        tokenString[tokenStringIndex - 1] == '\r'))
-                    tokenStringIndex--;
-                save = FALSE;
                 state = DONE;
                 currentToken = ERROR;
+                scanErrorKind = SCAN_ERROR_UNTERMINATED_COMMENT;
                 unterminatedCommentEOF = TRUE;
             }
             else
@@ -363,9 +416,10 @@ TokenType getToken(void)
             fprintf(listing, "Scanner Bug: state=%d\n", state);
             state = DONE;
             currentToken = ERROR;
+            scanErrorKind = SCAN_ERROR_INVALID_SYMBOL;
             break;
         }
-        if ((save) && (tokenStringIndex <= MAXTOKENLEN))
+        if (save && tokenStringIndex < MAXTOKENLEN)
             tokenString[tokenStringIndex++] = (char)c;
         if (state == DONE)
         {
@@ -374,9 +428,14 @@ TokenType getToken(void)
                 currentToken = reservedLookup(tokenString);
         }
     }
-    tokenLine = lineno;
-    if (EOF_flag && !lastLineHadNewline && tokenLine > 0)
-        tokenLine--;
+    if (currentToken == ENDFILE)
+    {
+        tokenLine = lineno;
+        if (EOF_flag && !lastLineHadNewline && tokenLine > 0)
+            tokenLine--;
+    }
+    else
+        tokenLine = tokenStartLine;
     if (currentToken == ENDFILE && eofTokenLineOverride >= 0)
     {
         tokenLine = eofTokenLineOverride;

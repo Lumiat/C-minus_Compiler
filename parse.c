@@ -9,6 +9,23 @@ The parser inplementation for the C-minus compiler
 
 static TokenType token; /* current token */
 
+static TokenType nextToken(void)
+{
+    TokenType next;
+
+    do
+    {
+        next = getToken();
+        if (next == ERROR)
+        {
+            reportScanError(listing);
+            Error = TRUE;
+        }
+    } while (next == ERROR);
+
+    return next;
+}
+
 /* helper to print token name */
 static const char *tokenName(TokenType t)
 {
@@ -82,6 +99,7 @@ static TreeNode *fun_declaration(char *idname, TreeNode *typeNode);
 static TreeNode *params(void);
 static TreeNode *param_list(void);
 static TreeNode *param(void);
+static TreeNode *finish_param(TreeNode *typeNode);
 static TreeNode *compound_stmt(void);
 static TreeNode *local_declarations(void);
 static TreeNode *statement_list(void);
@@ -99,12 +117,6 @@ static TreeNode *args(void);
 static TreeNode *arg_list(void);
 
 #define TOKEN_SET_SIZE(set) ((int)(sizeof(set) / sizeof((set)[0])))
-
-static void syntaxError(char *message)
-{
-    fprintf(listing, "\n>>> Syntax error at line %d: %s\n", lineno, message);
-    Error = TRUE;
-}
 
 static void error_expected(TokenType expected)
 {
@@ -134,6 +146,65 @@ static void error_unexpected(const char *context)
     Error = TRUE;
 }
 
+static int editDistance(const char *left, const char *right)
+{
+    int previous[MAXTOKENLEN + 1];
+    int current[MAXTOKENLEN + 1];
+    size_t leftLength = strlen(left);
+    size_t rightLength = strlen(right);
+    size_t i;
+    size_t j;
+
+    for (j = 0; j <= rightLength; j++)
+        previous[j] = (int)j;
+
+    for (i = 1; i <= leftLength; i++)
+    {
+        current[0] = (int)i;
+        for (j = 1; j <= rightLength; j++)
+        {
+            int insertion = current[j - 1] + 1;
+            int deletion = previous[j] + 1;
+            int substitution = previous[j - 1] + (left[i - 1] != right[j - 1]);
+            int best = insertion < deletion ? insertion : deletion;
+            current[j] = best < substitution ? best : substitution;
+        }
+        for (j = 0; j <= rightLength; j++)
+            previous[j] = current[j];
+    }
+
+    return previous[rightLength];
+}
+
+static TokenType reportUnknownType(const char *name)
+{
+    int intDistance = editDistance(name, "int");
+    int voidDistance = editDistance(name, "void");
+    const char *suggestion = NULL;
+    TokenType recoveredType = INT;
+
+    if (intDistance <= voidDistance && intDistance <= 2)
+    {
+        suggestion = "int";
+        recoveredType = INT;
+    }
+    else if (voidDistance < intDistance && voidDistance <= 2)
+    {
+        suggestion = "void";
+        recoveredType = VOID;
+    }
+
+    if (suggestion != NULL)
+        fprintf(listing,
+                "\n>>> Syntax error at line %d: unknown type name '%s'; did you mean '%s'?\n",
+                tokenLine, name, suggestion);
+    else
+        fprintf(listing, "\n>>> Syntax error at line %d: unknown type name '%s'\n",
+                tokenLine, name);
+    Error = TRUE;
+    return recoveredType;
+}
+
 static int tokenInSet(TokenType t, const TokenType set[], int count)
 {
     int i;
@@ -150,7 +221,7 @@ static void synchronize(TokenType expected, const TokenType syncSet[], int syncC
     while (token != expected && token != ENDFILE &&
            !tokenInSet(token, syncSet, syncCount))
     {
-        token = getToken();
+        token = nextToken();
     }
 }
 
@@ -158,7 +229,7 @@ static int expect(TokenType expected, const TokenType syncSet[], int syncCount)
 {
     if (token == expected)
     {
-        token = getToken();
+        token = nextToken();
         return TRUE;
     }
 
@@ -167,7 +238,7 @@ static int expect(TokenType expected, const TokenType syncSet[], int syncCount)
 
     if (token == expected)
     {
-        token = getToken();
+        token = nextToken();
         return TRUE;
     }
 
@@ -183,7 +254,7 @@ static int isExpressionFollow(TokenType t)
 static void match(TokenType expected)
 {
     if (token == expected)
-        token = getToken();
+        token = nextToken();
     else
     {
         error_expected(expected);
@@ -195,9 +266,18 @@ TreeNode *declaration_list(void)
     TreeNode *t = NULL; /* head pointer of declaration list */
     TreeNode *p = NULL; /* tail pointer of declaration list */
 
-    while (token == INT || token == VOID)
+    while (token != ENDFILE)
     {
-        TreeNode *q = declaration(); /* parsed declaration subtree */
+        TreeNode *q;
+
+        if (token != INT && token != VOID && token != ID)
+        {
+            error_unexpected("declaration");
+            token = nextToken();
+            continue;
+        }
+
+        q = declaration(); /* parsed declaration subtree */
         if (q != NULL)
         {
             if (t == NULL)
@@ -226,7 +306,7 @@ TreeNode *declaration(void)
         error_expected_str("identifier");
         /* try to recover */
         while (token != SEMI && token != LPAREN && token != ENDFILE)
-            token = getToken();
+            token = nextToken();
         return NULL;
     }
 
@@ -282,6 +362,7 @@ TreeNode *var_declaration(char *idname, TreeNode *typeNode)
 TreeNode *type_specifier(void)
 {
     TreeNode *t = NULL;
+    TokenType recoveredType;
 
     if (token == INT)
     {
@@ -294,6 +375,13 @@ TreeNode *type_specifier(void)
         t = newDeclNode(ParamK);
         t->type = Void;
         match(VOID);
+    }
+    else if (token == ID)
+    {
+        recoveredType = reportUnknownType(tokenString);
+        t = newDeclNode(ParamK);
+        t->type = recoveredType == VOID ? Void : Integer;
+        match(ID);
     }
     else
     {
@@ -327,10 +415,30 @@ TreeNode *params(void)
 {
     if (token == VOID)
     {
-        /* consume VOID; if followed by RPAREN this denotes no parameters */
-        TreeNode *t = newDeclNode(ParamK);
-        t->type = Void;
-        match(VOID);
+        TreeNode *typeNode = type_specifier();
+        TreeNode *t;
+        TreeNode *p;
+
+        if (token == RPAREN)
+            return typeNode;
+
+        t = finish_param(typeNode);
+        p = t;
+        while (token == COMMA)
+        {
+            match(COMMA);
+            TreeNode *q = param();
+            if (q != NULL)
+            {
+                if (t == NULL)
+                    t = p = q;
+                else
+                {
+                    p->sibling = q;
+                    p = q;
+                }
+            }
+        }
         return t;
     }
     else
@@ -365,15 +473,20 @@ TreeNode *param_list(void)
 /* param -> type_specifier ID [ [] ] */
 TreeNode *param(void)
 {
+    TreeNode *typeNode = type_specifier();
+    return finish_param(typeNode);
+}
+
+TreeNode *finish_param(TreeNode *typeNode)
+{
     TreeNode *t = NULL;
     static const TokenType rbracketSync[] = {COMMA, RPAREN, LBRACE};
 
-    TreeNode *typeNode = type_specifier();
     if (token != ID)
     {
         error_expected_str("identifier");
         while (token != COMMA && token != RPAREN && token != LBRACE && token != ENDFILE)
-            token = getToken();
+            token = nextToken();
         return NULL;
     }
     t = newDeclNode(ParamK);
@@ -419,7 +532,7 @@ TreeNode *local_declarations(void)
             static const TokenType semiSync[] = {RBRACE, INT, IF, WHILE, RETURN, LBRACE, ID, NUM, LPAREN};
             error_expected_str("identifier");
             while (token != SEMI && token != RBRACE && token != ENDFILE)
-                token = getToken();
+                token = nextToken();
             expect(SEMI, semiSync, TOKEN_SET_SIZE(semiSync));
             continue;
         }
@@ -677,7 +790,7 @@ TreeNode *factor(void)
     default:
         error_unexpected("expression");
         if (!isExpressionFollow(token))
-            token = getToken();
+            token = nextToken();
         break;
     }
     return t;
@@ -718,9 +831,7 @@ TreeNode *arg_list(void)
 TreeNode *parse(void)
 {
     TreeNode *t;
-    token = getToken();
+    token = nextToken();
     t = declaration_list();
-    if (token != ENDFILE)
-        syntaxError("Code ends before file\n");
     return t;
 }

@@ -3,17 +3,7 @@
 #include "../../globals.h"
 #include "../../util.h"
 #include "../../parse.h"
-
-FILE *source;
-FILE *listing;
-FILE *code;
-int lineno = 1;
-int EchoSource = FALSE;
-int TraceScan = FALSE;
-int TraceParse = TRUE;
-int TraceAnalyze = FALSE;
-int TraceCode = FALSE;
-int Error = FALSE;
+#include "../../scan.h"
 
 int main(int argc, char **argv)
 {
@@ -29,6 +19,14 @@ int main(int argc, char **argv)
         return 1;
     }
     listing = stdout;
+    lineno = 0;
+    Error = FALSE;
+    EchoSource = FALSE;
+    TraceScan = FALSE;
+    TraceParse = TRUE;
+    TraceAnalyze = FALSE;
+    TraceCode = FALSE;
+    resetScanner();
     TreeNode *t = parse();
     if (TraceParse && t != NULL)
     {

@@ -1,0 +1,13 @@
+valid_gcd
+valid_array
+valid_scope
+duplicate_decl
+undeclared_var
+undeclared_func
+void_var
+void_param
+array_scalar_misuse
+arg_count
+arg_shape
+illegal_return
+main_wrong

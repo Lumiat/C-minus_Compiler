@@ -1,0 +1,10 @@
+valid_program
+lex_invalid_symbol
+lex_malformed_identifier
+lex_malformed_number
+lex_comment_error
+syntax_unknown_type
+syntax_missing_semicolon
+semantic_undeclared_identifier
+semantic_argument_mismatch
+stage_precedence

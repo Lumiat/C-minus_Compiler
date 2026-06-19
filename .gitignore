@@ -2,3 +2,8 @@
 *.exe
 *.md
 !README.md
+test/*/outputs/
+test/*/run_tests
+test/scan/scanner_test
+test/parse/parser_test
+gen_parse_output

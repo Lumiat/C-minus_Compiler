@@ -1,8 +1,9 @@
 gcd
 array_control
-error_case
 illegal_assignment
+missing_semicolon
 missing_operand
 missing_rparen
 missing_expr_rparen
 array_no_size
+unknown_type

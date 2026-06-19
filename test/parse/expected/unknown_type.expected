@@ -1,0 +1,13 @@
+
+>>> Syntax error at line 1: unknown type name 'viod'; did you mean 'void'?
+Syntax tree:
+  FuncK
+    VoidK
+    IdK: main
+    ParamsK
+      VoidK
+    CompK
+      Var_DeclK
+        IntK
+        IdK: x
+      Return

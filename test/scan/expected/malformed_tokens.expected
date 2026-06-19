@@ -1,0 +1,10 @@
+1: abc123 123abc _hidden ! @ */
+    1: ERROR: abc123
+    1: ERROR: 123abc
+    1: ERROR: _hidden
+    1: ERROR: !
+    1: ERROR: @
+    1: ERROR: */
+2: /* never closed
+    2: ERROR: /*
+    2: EOF

@@ -1,58 +1,82 @@
 # Makefile for C-Minus Compiler
-# Compiler and flags
+
 CC = gcc
 CFLAGS = -std=c99 -Wall -I.
-CC_C = $(CC) -x c
 LDFLAGS =
 
-# Source files and object files
-CORE_SOURCES = SCAN.C UTIL.C
-CORE_OBJECTS = $(CORE_SOURCES:.C=.o)
+CORE_OBJECTS = globals.o scan.o util.o
+FRONTEND_OBJECTS = parse.o analyze.o
+TEST_COMMON_OBJECT = test/test_runner.o
+TEST_RUNNERS = \
+	test/scan/run_tests \
+	test/parse/run_tests \
+	test/analyze/run_tests \
+	test/compiler/run_tests
 
-# Targets
-.PHONY: all clean test test-scan test-parse help
-.SUFFIXES: .C .o
+.PHONY: all clean test test-scan test-parse test-analyze test-compiler test-complier help
+.SUFFIXES: .c .o
 
-all: test/scan/run_tests test/parse/run_tests
+all: $(TEST_RUNNERS)
 
-# Test runners
+test: test-scan test-parse test-analyze test-compiler
+
 test-scan: test/scan/run_tests
-
-test-parse: test/parse/run_tests
-
-test: test-scan test-parse
-test-scan:
 	./test/scan/run_tests
 
-test-parse:
+test-parse: test/parse/run_tests
 	./test/parse/run_tests
 
+test-analyze: test/analyze/run_tests
+	./test/analyze/run_tests
 
-# Compile object files - explicit rules for Windows compatibility
-SCAN.o: SCAN.C
-	$(CC_C) $(CFLAGS) -c $< -o $@
+test-compiler: test/compiler/run_tests
+	./test/compiler/run_tests
 
-UTIL.o: UTIL.C
-	$(CC_C) $(CFLAGS) -c $< -o $@
+# Compatibility alias for the spelling used in the assignment notes.
+test-complier: test-compiler
 
-# Build scanner test executable
+globals.o: globals.c globals.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+scan.o: scan.c scan.h globals.h util.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+util.o: util.c util.h globals.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+parse.o: parse.c parse.h scan.h util.h globals.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+analyze.o: analyze.c analyze.h util.h globals.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+compiler.o: compiler.c compiler.h analyze.h parse.h scan.h globals.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(TEST_COMMON_OBJECT): test/test_runner.c test/test_runner.h globals.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+test/scan/run_tests: test/scan/run_tests.c $(TEST_COMMON_OBJECT) $(CORE_OBJECTS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+test/parse/run_tests: test/parse/run_tests.c $(TEST_COMMON_OBJECT) parse.o $(CORE_OBJECTS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+test/analyze/run_tests: test/analyze/run_tests.c $(TEST_COMMON_OBJECT) analyze.o parse.o $(CORE_OBJECTS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+test/compiler/run_tests: test/compiler/run_tests.c $(TEST_COMMON_OBJECT) compiler.o analyze.o parse.o $(CORE_OBJECTS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
 test/scan/scanner_test: test/scan/scanner_test.c $(CORE_OBJECTS)
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
-# Build scanner batch test executable
-test/scan/run_tests: test/scan/run_tests.c $(CORE_OBJECTS)
+test/parse/parser_test: test/parse/parser_test.c parse.o $(CORE_OBJECTS)
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
-# Build parser test executable
-test/parse/parser_test: test/parse/parser_test.c $(CORE_OBJECTS)
-	$(CC) $(CFLAGS) $^ parse.c -o $@ $(LDFLAGS)
+gen_parse_output: gen_parse_output.c parse.o $(CORE_OBJECTS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
-# Build parser batch test executable
-test/parse/run_tests: test/parse/run_tests.c $(CORE_OBJECTS)
-	$(CC) $(CFLAGS) $^ parse.c -o $@ $(LDFLAGS)
-
-# Run scanner_test on a single input file
-# Usage: make test_file FILE=test/inputs/simple_tokens.cm
 test_file: test/scan/scanner_test
 	@if [ -z "$(FILE)" ]; then \
 		echo "Usage: make test_file FILE=<test-input-file>"; \
@@ -60,29 +84,21 @@ test_file: test/scan/scanner_test
 	fi
 	./test/scan/scanner_test "$(FILE)"
 
-# Clean build artifacts
 clean:
-	cmd /C "if exist SCAN.o del /Q /F SCAN.o"
-	cmd /C "if exist UTIL.o del /Q /F UTIL.o"
-	cmd /C "if exist test\\scan\\scanner_test del /Q /F test\\scan\\scanner_test"
-	cmd /C "if exist test\\scan\\scanner_test.exe del /Q /F test\\scan\\scanner_test.exe"
-	cmd /C "if exist test\\scan\\run_tests del /Q /F test\\scan\\run_tests"
-	cmd /C "if exist test\\scan\\run_tests.exe del /Q /F test\\scan\\run_tests.exe"
-	cmd /C "if exist test\\parse\\run_tests del /Q /F test\\parse\\run_tests"
-	cmd /C "if exist test\\parse\\run_tests.exe del /Q /F test\\parse\\run_tests.exe"
-	cmd /C "if exist test\\scan\\outputs rmdir /S /Q test\\scan\\outputs"
-	cmd /C "if exist test\\parse\\outputs rmdir /S /Q test\\parse\\outputs"
+	rm -f *.o test/*.o
+	rm -f $(TEST_RUNNERS)
+	rm -f test/scan/scanner_test test/parse/parser_test gen_parse_output
+	rm -rf test/scan/outputs test/parse/outputs test/analyze/outputs test/compiler/outputs
 
-# Help message
 help:
 	@echo "C-Minus Compiler Build System"
 	@echo "=============================="
-	@echo "make              - Build all test targets"
-	@echo "make test-scan    - Run scanner tests"
-	@echo "make test-parse   - Run parser tests"
-	@echo "make test         - Run both scanner and parser tests"
-	@echo "make test_file FILE=path - Run scanner on single file"
-	@echo "make clean        - Remove build artifacts"
-	@echo "make help         - Show this message"
-	@echo ""
-	@echo "Example: make test_file FILE=test/scan/inputs/simple_tokens.cm"
+	@echo "make                 - Build all test runners"
+	@echo "make test-scan       - Test lexical analysis only"
+	@echo "make test-parse      - Test parsing with lexically valid inputs"
+	@echo "make test-analyze    - Test semantic analysis with valid front-end inputs"
+	@echo "make test-compiler   - Test the complete compiler pipeline"
+	@echo "make test-complier   - Compatibility alias for test-compiler"
+	@echo "make test            - Run all four test suites"
+	@echo "make test_file FILE=path - Run scanner on one input file"
+	@echo "make clean           - Remove build artifacts and generated outputs"

@@ -3,18 +3,6 @@
 #include "scan.h"
 #include "parse.h"
 
-/* Global variables required by parse/util */
-FILE *source;
-FILE *listing;
-FILE *code;
-int lineno = 0;
-int EchoSource = FALSE;
-int TraceScan = FALSE;
-int TraceParse = TRUE;
-int TraceAnalyze = FALSE;
-int TraceCode = FALSE;
-int Error = FALSE;
-
 int main(int argc, char *argv[])
 {
     if (argc < 2)
@@ -31,6 +19,12 @@ int main(int argc, char *argv[])
     }
 
     listing = stdout;
+    Error = FALSE;
+    EchoSource = FALSE;
+    TraceScan = FALSE;
+    TraceParse = TRUE;
+    TraceAnalyze = FALSE;
+    TraceCode = FALSE;
     resetScanner();
     lineno = 0;
     TreeNode *syntaxTree = parse();
