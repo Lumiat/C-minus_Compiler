@@ -4,6 +4,9 @@ This project implements the lexical, syntax, and semantic analysis stages of a
 C-minus compiler. Tests are separated by responsibility so that each stage is
 validated with inputs satisfying the preconditions of that stage.
 
+A semantically valid C-minus program must declare its entry function as
+`int main(void)`.
+
 ```text
 C-minus_Compiler/
 ├── compiler.c / compiler.h   # Complete compiler pipeline
