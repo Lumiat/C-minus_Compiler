@@ -3,7 +3,8 @@ int sum(int a[])
     return a[0];
 }
 
-void main(void)
+int main(void)
 {
     output(sum(1));
+    return 0;
 }

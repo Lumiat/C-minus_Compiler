@@ -455,12 +455,12 @@ static void checkMain(void)
 
     if (mainSym == NULL || mainSym->kind != SymFunc)
     {
-        semanticError(0, "program must declare function 'void main(void)'");
+        semanticError(0, "program must declare function 'int main(void)'");
         return;
     }
 
-    if (mainSym->type != Void || mainSym->paramCount != 0)
-        semanticError(mainSym->lineno, "function 'main' must be declared as void main(void)");
+    if (mainSym->type != Integer || mainSym->paramCount != 0)
+        semanticError(mainSym->lineno, "function 'main' must be declared as int main(void)");
 }
 
 void buildSymtab(TreeNode *syntaxTree)

@@ -12,11 +12,12 @@ int sum(int data[], int n)
     return total;
 }
 
-void main(void)
+int main(void)
 {
     int values[3];
     values[0] = 1;
     values[1] = 2;
     values[2] = 3;
     output(sum(values, 3));
+    return 0;
 }

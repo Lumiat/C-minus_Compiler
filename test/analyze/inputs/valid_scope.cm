@@ -1,4 +1,4 @@
-void main(void)
+int main(void)
 {
     int x;
     x = 1;
@@ -8,4 +8,5 @@ void main(void)
         output(x);
     }
     output(x);
+    return 0;
 }

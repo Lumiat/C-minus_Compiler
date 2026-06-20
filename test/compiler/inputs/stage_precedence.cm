@@ -1,4 +1,4 @@
-void main(void)
+int main(void)
 {
     @
     x = 1

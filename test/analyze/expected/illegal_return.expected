@@ -1,1 +1,1 @@
->>> Semantic error at line 3: void function 'main' should not return a value
+>>> Semantic error at line 3: void function 'f' should not return a value
